@@ -1,7 +1,7 @@
 #!/bin/bash
 set -x
 
-git clone https://github.com/Forty-Tw0/RaspberryPi-FreeRTOS.git
+git clone https://github.com/jameswalmsley/RaspberryPi-FreeRTOS.git
 
 cd RaspberryPi-FreeRTOS
 
@@ -12,21 +12,25 @@ tar -xf gcc-arm-none-eabi-4_9-2015q3-20150921-linux.tar.bz2
 rm gcc-arm-none-eabi-4_9-2015q3-20150921-linux.tar.bz2
 
 cat << "EOF" > Makefile
+#
+#	Makefile for FreeRTOS demo on Raspberry Pi
+#
 PATH:=$(PATH):./gcc-arm-none-eabi-4_9-2015q3/arm-none-eabi/bin:./gcc-arm-none-eabi-4_9-2015q3/bin
 BASE=$(shell pwd)/
 BUILD_DIR=$(shell pwd)/build/
 
 MODULE_NAME="RaspberryPi BSP"
 
-TARGETS=kernel7.img kernel.list kernel.syms kernel.elf
+TARGETS=kernel.img kernel.list kernel.syms kernel.elf
 LINKER_SCRIPT=raspberrypi.ld
 
 -include .dbuild/dbuild.mk
 
-all: kernel.list kernel7.img kernel.syms
+
+all: kernel.list kernel.img kernel.syms
 	@$(SIZE) kernel.elf
 
-kernel7.img: kernel.elf
+kernel.img: kernel.elf
 	$(Q)$(PRETTY) IMAGE $(MODULE_NAME) $@
 	$(Q)$(OBJCOPY) kernel.elf -O binary $@
 
