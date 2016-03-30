@@ -8,11 +8,11 @@ OBJECTS += $(BUILD_DIR)/Source/portable/GCC/RaspberryPi/portisr.o
 #	FreeRTOS Core
 #
 OBJECTS += $(BUILD_DIR)/Source/croutine.o
-#OBJECTS += $(BUILD_DIR)/Source/event_groups.o
+OBJECTS += $(BUILD_DIR)/Source/event_groups.o
 OBJECTS += $(BUILD_DIR)/Source/list.o
 OBJECTS += $(BUILD_DIR)/Source/queue.o
 OBJECTS += $(BUILD_DIR)/Source/tasks.o
-#OBJECTS += $(BUILD_DIR)/Source/timers.o
+OBJECTS += $(BUILD_DIR)/Source/timers.o
 
 #
 #	Interrupt Manager & GPIO Drivers
