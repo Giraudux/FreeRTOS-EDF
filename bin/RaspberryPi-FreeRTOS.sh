@@ -1,10 +1,6 @@
 #!/bin/bash
 set -x
 
-git clone https://github.com/jameswalmsley/RaspberryPi-FreeRTOS.git
-
-cd RaspberryPi-FreeRTOS
-
 wget https://launchpad.net/gcc-arm-embedded/4.9/4.9-2015-q3-update/+download/gcc-arm-none-eabi-4_9-2015q3-20150921-linux.tar.bz2
 
 tar -xf gcc-arm-none-eabi-4_9-2015q3-20150921-linux.tar.bz2
@@ -46,6 +42,7 @@ kernel.elf: LDFLAGS += -L "./gcc-arm-none-eabi-4_9-2015q3/lib/gcc/arm-none-eabi/
 kernel.elf: LDFLAGS += -L "./gcc-arm-none-eabi-4_9-2015q3/arm-none-eabi/lib" -lc
 kernel.elf: $(OBJECTS)
 	$(Q)$(LD) $(OBJECTS) -Map kernel.map -o $@ -T $(LINKER_SCRIPT) $(LDFLAGS)
+
 EOF
 
 make

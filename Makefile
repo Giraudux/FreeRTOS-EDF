@@ -1,6 +1,7 @@
 #
 #	Makefile for FreeRTOS demo on Raspberry Pi
 #
+PATH:=$(PATH):./gcc-arm-none-eabi-4_9-2015q3/arm-none-eabi/bin:./gcc-arm-none-eabi-4_9-2015q3/bin
 BASE=$(shell pwd)/
 BUILD_DIR=$(shell pwd)/build/
 
@@ -27,9 +28,8 @@ kernel.syms: kernel.elf
 	$(Q)$(PRETTY) SYMS $(MODULE_NAME) $@
 	$(Q)$(OBJDUMP) -t kernel.elf > $@
 
-#kernel.elf: LDFLAGS += -L "/opt/Xilinx/14.2/ISE_DS/EDK/gnu/arm/lin64/lib/gcc/arm-xilinx-eabi/4.6.1/" -lgcc
-#kernel.elf: LDFLAGS += -L "/opt/Xilinx/14.2/ISE_DS/EDK/gnu/arm/lin64/arm-xilinx-eabi/lib/" -lc
-kernel.elf: LDFLAGS += -L "/usr/lib/gcc/arm-none-eabi/4.7.4" -lgcc
-kernel.elf: LDFLAGS += -L "/usr/arm-none-eabi/lib" -lc
+kernel.elf: LDFLAGS += -L "./gcc-arm-none-eabi-4_9-2015q3/lib/gcc/arm-none-eabi/4.9.3" -lgcc
+kernel.elf: LDFLAGS += -L "./gcc-arm-none-eabi-4_9-2015q3/arm-none-eabi/lib" -lc
 kernel.elf: $(OBJECTS)
 	$(Q)$(LD) $(OBJECTS) -Map kernel.map -o $@ -T $(LINKER_SCRIPT) $(LDFLAGS)
+
