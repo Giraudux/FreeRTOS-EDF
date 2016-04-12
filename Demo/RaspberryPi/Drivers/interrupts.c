@@ -83,6 +83,10 @@ void irqHandler() {
 
 
 static void stubHandler(int nIRQ, void *pParam) {
+    /* unused parameters */
+    (void) nIRQ;
+    (void) pParam;
+
 	/**
 	 *	Actually if we get here, we should probably disable the IRQ,
 	 *	otherwise we could lock up this system, as there is nothing to

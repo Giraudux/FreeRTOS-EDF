@@ -155,6 +155,10 @@ void vPortEndScheduler( void )
  */
 void vTickISR(int nIRQ, void *pParam )
 {
+    /* unused parameters*/
+    (void) nIRQ;
+    (void) pParam;
+
 	xTaskIncrementTick();
 
 	#if configUSE_PREEMPTION == 1
@@ -186,8 +190,8 @@ static void prvSetupTimerInterrupt( void )
 	DisableInterrupts();
 
 	pRegs->CTL = 0x003E0000;
-	pRegs->LOD = 1000 - 1;
-	pRegs->RLD = 1000 - 1;
+	pRegs->LOD = ulCompareMatch;
+	pRegs->RLD = ulCompareMatch;
 	pRegs->DIV = portTIMER_PRESCALE;
 	pRegs->CLI = 0;
 	pRegs->CTL = 0x003E00A2;
