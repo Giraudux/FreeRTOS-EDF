@@ -4,7 +4,10 @@
 #include "Drivers/interrupts.h"
 #include "Drivers/gpio.h"
 
-void task0(void *pParam) {
+/**
+ *
+ */
+void task0_aperiodic(void *pParam) {
     /* unused parameter */
     (void) pParam;
 
@@ -15,7 +18,10 @@ void task0(void *pParam) {
 	}
 }
 
-void task1(void *pParam) {
+/**
+ *
+ */
+void task1_aperiodic(void *pParam) {
     /* unused parameter */
     (void) pParam;
 
@@ -23,6 +29,29 @@ void task1(void *pParam) {
 		SetGpio(16, 1);
 		vTaskDelay(200);
 	}
+}
+
+/**
+ *
+ */
+void task0_periodic(void *pParam) {
+    /* unused parameter */
+    (void) pParam;
+
+	vTaskDelay(100);
+	SetGpio(16, 0);
+	vTaskDelay(100);
+}
+
+/**
+ *
+ */
+void task1_periodic(void *pParam) {
+    /* unused parameter */
+    (void) pParam;
+
+	SetGpio(16, 1);
+	vTaskDelay(200);
 }
 
 /**
@@ -38,8 +67,8 @@ int main(void) {
 
 	SetGpioFunction(16, 1);			// RDY led
 
-	xTaskCreate(task0, "LED_0", 128, NULL, 0, NULL);
-	xTaskCreate(task1, "LED_1", 128, NULL, 0, NULL);
+	xTaskCreate(task0_aperiodic, "LED_0", 128, NULL, 0, NULL);
+	xTaskCreate(task1_aperiodic, "LED_1", 128, NULL, 0, NULL);
 
 	vTaskStartScheduler();
 
