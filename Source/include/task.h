@@ -2028,10 +2028,12 @@ eSleepModeStatus eTaskConfirmSleepModeStatus( void ) PRIVILEGED_FUNCTION;
  */
 void *pvTaskIncrementMutexHeldCount( void ) PRIVILEGED_FUNCTION;
 
+/*
+ * Update
+ */
+void vTaskUpdatePriorities( void ) PRIVILEGED_FUNCTION;
+
 #ifdef __cplusplus
 }
 #endif
 #endif /* INC_TASK_H */
-
-
-

@@ -146,8 +146,9 @@ typedef struct tskTaskControlBlock
 	StackType_t			*pxStack;			/*< Points to the start of the stack. */
 	char				pcTaskName[ configMAX_TASK_NAME_LEN ];/*< Descriptive name given to the task when created.  Facilitates debugging only. */ /*lint !e971 Unqualified char types are allowed for strings and single characters only. */
 
-	TickType_t          xBaseCriticalDelay; /*< Di */
-	TickType_t          xNextDeadLine;      /*< di */
+	UBaseType_t         uxBaseCriticalDelay; /*< Di */
+	UBaseType_t         uxNextDeadLine;      /*< di */
+	UBaseType_t         uxMaxExecutionTime;   /*< ci */
 
 	#if ( portSTACK_GROWTH > 0 )
 		StackType_t		*pxEndOfStack;		/*< Points to the end of the stack on architectures where the stack grows up from low memory. */
@@ -4474,7 +4475,17 @@ TickType_t uxReturn;
 
 #endif /* configUSE_TASK_NOTIFICATIONS */
 
+/*-----------------------------------------------------------*/
+
+void vTaskUpdatePriorities( void ) {
+    /*TCP_t *pxTCB = prvGetTCBFromHandle( xTask );*/
+    UBaseType_t i;
+
+    for(i = 0; i < configMAX_PRIORITIES; i++) {
+        ;
+    }
+}
+
 #ifdef FREERTOS_MODULE_TEST
 	#include "tasks_test_access_functions.h"
 #endif
-
