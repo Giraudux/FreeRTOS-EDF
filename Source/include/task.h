@@ -155,8 +155,6 @@ typedef struct xTASK_PARAMETERS
 	TaskFunction_t pvTaskCode;
 	const char * const pcName;	/*lint !e971 Unqualified char types are allowed for strings and single characters only. */
 	uint16_t usStackDepth;
-	TickType_t xcriticalDelay;          /*Critical delay, or maximum time allowed for the execution of the task, in ticks. = Di */ /* CEST PAS DORIGINE CA*/
-	TickType_t xInterArrivalPeriod; 
 	void *pvParameters;
 	UBaseType_t uxPriority;
 	StackType_t *puxStackBuffer;
@@ -173,8 +171,7 @@ typedef struct xTASK_STATUS
 	eTaskState eCurrentState;		/* The state in which the task existed when the structure was populated. */
 	UBaseType_t uxCurrentPriority;	/* The priority at which the task was running (may be inherited) when the structure was populated. */
 	UBaseType_t uxBasePriority;		/* The priority to which the task will return if the task's current priority has been inherited to avoid unbounded priority inversion when obtaining a mutex.  Only valid if configUSE_MUTEXES is defined as 1 in FreeRTOSConfig.h. */
-	uint32_t ulRunTimeCounter;	/* The total run time allocated to the task so far, as defined by the run time stats clock.  See http://www.freertos.org/rtos-run-time-stats.html.  Only valid when configGENERATE_RUN_TIME_STATS is defined as 1 in FreeRTOSConfig.h. */
-
+	uint32_t ulRunTimeCounter;		/* The total run time allocated to the task so far, as defined by the run time stats clock.  See http://www.freertos.org/rtos-run-time-stats.html.  Only valid when configGENERATE_RUN_TIME_STATS is defined as 1 in FreeRTOSConfig.h. */
 	uint16_t usStackHighWaterMark;	/* The minimum amount of stack space that has remained for the task since the task was created.  The closer this value is to zero the closer the task has come to overflowing its stack. */
 } TaskStatus_t;
 
@@ -345,7 +342,7 @@ is used in assert() statements. */
  * \defgroup xTaskCreate xTaskCreate
  * \ingroup Tasks
  */
-#define xTaskCreate( pvTaskCode, pcName, usStackDepth, xcriticalDelay, xinterArrivalPeriod, pvParameters, pxCreatedTask ) xTaskGenericCreate( ( pvTaskCode ), ( pcName ), ( usStackDepth ), (xcriticalDelay), (xinterArrivalPeriod), ( pvParameters ), ( pxCreatedTask ), ( 0 ), ( NULL ), ( NULL ) )
+#define xTaskCreate( pvTaskCode, pcName, usStackDepth, pvParameters, uxPriority, pxCreatedTask ) xTaskGenericCreate( ( pvTaskCode ), ( pcName ), ( usStackDepth ), ( pvParameters ), ( uxPriority ), ( pxCreatedTask ), ( NULL ), ( NULL ) )
 
 /**
  * task. h
@@ -1986,7 +1983,7 @@ BaseType_t xTaskPriorityDisinherit( TaskHandle_t const pxMutexHolder ) PRIVILEGE
  * Generic version of the task creation function which is in turn called by the
  * xTaskCreate() and xTaskCreateRestricted() macros.
  */
-BaseType_t xTaskGenericCreate( TaskFunction_t pxTaskCode, const char * const pcName, const uint16_t usStackDepth,const uint32_t criticalDelay, const uint32_t interArrivalPeriod, void * const pvParameters, UBaseType_t uxPriority, TaskHandle_t * const pxCreatedTask, StackType_t * const puxStackBuffer, const MemoryRegion_t * const xRegions ) PRIVILEGED_FUNCTION; /*lint !e971 Unqualified char types are allowed for strings and single characters only. */
+BaseType_t xTaskGenericCreate( TaskFunction_t pxTaskCode, const char * const pcName, const uint16_t usStackDepth, void * const pvParameters, UBaseType_t uxPriority, TaskHandle_t * const pxCreatedTask, StackType_t * const puxStackBuffer, const MemoryRegion_t * const xRegions ) PRIVILEGED_FUNCTION; /*lint !e971 Unqualified char types are allowed for strings and single characters only. */
 
 /*
  * Get the uxTCBNumber assigned to the task referenced by the xTask parameter.
