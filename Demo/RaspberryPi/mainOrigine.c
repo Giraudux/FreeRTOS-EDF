@@ -168,7 +168,7 @@ int main(void) {
 
 	SetGpioFunction(18, 1);			// RDY led
 	SetGpioFunction(23, 1);
-	SetGpioFunction(7, 1);			// RDY led
+		SetGpioFunction(7, 1);			// RDY led
 	SetGpioFunction(8, 1);
 /*
 	xTaskCreate(task16, "LED_16", 128, NULL, 0, NULL);
@@ -178,9 +178,9 @@ int main(void) {
 	//SetGpioFunction(24, 1);
 	xTaskCreate(taskdroite, "LED_7", 128, NULL, 3, NULL);
 	xTaskCreate(taskgauche, "LED_8", 128, NULL, 3, NULL);
-	xTaskCreate(taskred, "LED_18", 128, NULL, 2, NULL);
+	xTaskCreate(taskred, "LED_18", 128, NULL, 1, NULL);
 	//xTaskCreate(taskblue, "LED_24", 128, NULL,1, NULL);
-	xTaskCreate(taskgreen, "LED_23", 128, NULL, 1, NULL);
+	xTaskCreate(taskgreen, "LED_23", 128, NULL, 5, NULL);
 	
 
 	vTaskStartScheduler();
