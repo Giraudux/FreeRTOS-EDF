@@ -146,8 +146,9 @@ typedef struct tskTaskControlBlock
 	StackType_t			*pxStack;			/*< Points to the start of the stack. */
 	char				pcTaskName[ configMAX_TASK_NAME_LEN ];/*< Descriptive name given to the task when created.  Facilitates debugging only. */ /*lint !e971 Unqualified char types are allowed for strings and single characters only. */
 
-	TickType_t          xBaseCriticalDelay; /*< Di */
-	TickType_t          xNextDeadLine;      /*< di */
+	UBaseType_t         uxBaseCriticalDelay; /*< Di */
+	UBaseType_t         uxNextDeadLine;      /*< di */
+	UBaseType_t         uxMaxExecutionTime;   /*< ci */
 
 	#if ( portSTACK_GROWTH > 0 )
 		StackType_t		*pxEndOfStack;		/*< Points to the end of the stack on architectures where the stack grows up from low memory. */
@@ -4474,7 +4475,37 @@ TickType_t uxReturn;
 
 #endif /* configUSE_TASK_NOTIFICATIONS */
 
+/*-----------------------------------------------------------*/
+
+void vTaskUpdatePriorities( void )
+{
+TCB_t *pxTCBtmp;
+TCB_t *pxTCBmax;
+UBaseType_t uxPriority;
+ListItem_t *xItem;
+
+    pxTCBmax = pxCurrentTCB; /* check null ? */
+    uxPriority = ( UBaseType_t ) (configMAX_PRIORITIES - 1);
+	/*for( uxPriority = ( UBaseType_t ) 0U; uxPriority < ( UBaseType_t ) configMAX_PRIORITIES; uxPriority++ )
+	{*/
+        for( xItem = listGET_HEAD_ENTRY( & ( pxReadyTasksLists[ uxPriority ] ) );
+             xItem != listGET_END_MARKER( & ( pxReadyTasksLists[ uxPriority ] ) );
+             xItem = listGET_NEXT( xItem ) )
+        {
+            pxTCBtmp = ( TCB_t * ) listGET_LIST_ITEM_OWNER( xItem );
+
+        }
+	/*}*/
+
+	if( pxTCBmax != pxCurrentTCB )
+	{
+	    /*vTaskPrioritySet( TaskHandle_t xTask, UBaseType_t uxNewPriority )
+	    vTaskPrioritySet( TaskHandle_t xTask, UBaseType_t uxNewPriority )*/
+	    pxCurrentTCB->uxPriority = configMAX_PRIORITIES - 1;
+	    pxTCBmax->uxPriority = configMAX_PRIORITIES;
+	}
+}
+
 #ifdef FREERTOS_MODULE_TEST
 	#include "tasks_test_access_functions.h"
 #endif
-
