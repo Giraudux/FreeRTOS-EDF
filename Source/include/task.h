@@ -342,8 +342,8 @@ is used in assert() statements. */
  * \defgroup xTaskCreate xTaskCreate
  * \ingroup Tasks
  */
-#define xTaskCreate( pvTaskCode, pcName, usStackDepth, pvParameters, uxPriority, pxCreatedTask ) xTaskGenericCreate( ( pvTaskCode ), ( pcName ), ( usStackDepth ), ( pvParameters ), ( uxPriority ), ( 0U ), ( 0U ), ( 0U ), ( pxCreatedTask ), ( NULL ), ( NULL ) )
-#define xPeriodicTaskCreate( pvTaskCode, pcName, usStackDepth, pvParameters, uxCriticalDelay, uxPeriod, uxMaxExecutionTime, pxCreatedTask ) xTaskGenericCreate( ( pvTaskCode ), ( pcName ), ( usStackDepth ), ( pvParameters ), ( ( UBaseType_t ) ( configMAX_PRIORITIES - 1U ) ), ( uxCriticalDelay ), ( uxPeriod ), ( uxMaxExecutionTime ) , ( pxCreatedTask ), ( NULL ), ( NULL ) )
+#define xTaskCreate( pvTaskCode, pcName, usStackDepth, pvParameters, uxPriority, pxCreatedTask ) xTaskGenericCreate( ( pvTaskCode ), ( pcName ), ( usStackDepth ), ( pvParameters ), ( uxPriority ), ( 0U ), ( 0U ), ( 0U ), ( pxCreatedTask ), ( NULL ), ( NULL ), ( pdFALSE ) )
+#define xPeriodicTaskCreate( pvTaskCode, pcName, usStackDepth, pvParameters, uxCriticalDelay, uxPeriod, uxMaxExecutionTime, pxCreatedTask ) xTaskGenericCreate( ( pvTaskCode ), ( pcName ), ( usStackDepth ), ( pvParameters ), ( ( UBaseType_t ) ( configMAX_PRIORITIES - 1 ) ), ( uxCriticalDelay ), ( uxPeriod ), ( uxMaxExecutionTime ) , ( pxCreatedTask ), ( NULL ), ( NULL ), ( pdFALSE ) )
 
 /**
  * task. h
@@ -412,7 +412,7 @@ TaskHandle_t xHandle;
  * \defgroup xTaskCreateRestricted xTaskCreateRestricted
  * \ingroup Tasks
  */
-#define xTaskCreateRestricted( x, pxCreatedTask ) xTaskGenericCreate( ((x)->pvTaskCode), ((x)->pcName), ((x)->usStackDepth), ((x)->pvParameters), ((x)->uxPriority), ((x)->uxCriticalDelay), ((x)->uxPeriod), ((x)->uxMaxExecutionTime), (pxCreatedTask), ((x)->puxStackBuffer), ((x)->xRegions) )
+#define xTaskCreateRestricted( x, pxCreatedTask ) xTaskGenericCreate( ((x)->pvTaskCode), ((x)->pcName), ((x)->usStackDepth), ((x)->pvParameters), ((x)->uxPriority), ((x)->uxCriticalDelay), ((x)->uxPeriod), ((x)->uxMaxExecutionTime), (pxCreatedTask), ((x)->puxStackBuffer), ((x)->xRegions), ( pdFALSE ) )
 
 /**
  * task. h
@@ -1984,7 +1984,7 @@ BaseType_t xTaskPriorityDisinherit( TaskHandle_t const pxMutexHolder ) PRIVILEGE
  * Generic version of the task creation function which is in turn called by the
  * xTaskCreate() and xTaskCreateRestricted() macros.
  */
-BaseType_t xTaskGenericCreate( TaskFunction_t pxTaskCode, const char * const pcName, const uint16_t usStackDepth, void * const pvParameters, UBaseType_t uxPriority, UBaseType_t uxCriticalDelay, UBaseType_t uxPeriod, UBaseType_t uxMaxExecutionTime, TaskHandle_t * const pxCreatedTask, StackType_t * const puxStackBuffer, const MemoryRegion_t * const xRegions ) PRIVILEGED_FUNCTION; /*lint !e971 Unqualified char types are allowed for strings and single characters only. */
+BaseType_t xTaskGenericCreate( TaskFunction_t pxTaskCode, const char * const pcName, const uint16_t usStackDepth, void * const pvParameters, UBaseType_t uxPriority, UBaseType_t uxCriticalDelay, UBaseType_t uxPeriod, UBaseType_t uxMaxExecutionTime, TaskHandle_t * const pxCreatedTask, StackType_t * const puxStackBuffer, const MemoryRegion_t * const xRegions, BaseType_t xRestart ) PRIVILEGED_FUNCTION; /*lint !e971 Unqualified char types are allowed for strings and single characters only. */
 
 /*
  * Get the uxTCBNumber assigned to the task referenced by the xTask parameter.
