@@ -140,15 +140,16 @@ typedef struct tskTaskControlBlock
 		BaseType_t		xUsingStaticallyAllocatedStack; /* Set to pdTRUE if the stack is a statically allocated array, and pdFALSE if the stack is dynamically allocated. */
 	#endif
 
+    ListItem_t          xPeriodicListItem;   /*< */
 	ListItem_t			xGenericListItem;	/*< The list that the state list item of a task is reference from denotes the state of that task (Ready, Blocked, Suspended ). */
 	ListItem_t			xEventListItem;		/*< Used to reference a task from an event list. */
 	UBaseType_t			uxPriority;			/*< The priority of the task.  0 is the lowest priority. */
 	StackType_t			*pxStack;			/*< Points to the start of the stack. */
 	char				pcTaskName[ configMAX_TASK_NAME_LEN ];/*< Descriptive name given to the task when created.  Facilitates debugging only. */ /*lint !e971 Unqualified char types are allowed for strings and single characters only. */
 
-	UBaseType_t         uxBaseCriticalDelay; /*< Di */
-	UBaseType_t         uxNextDeadLine;      /*< di */
-	UBaseType_t         uxMaxExecutionTime;   /*< ci */
+	UBaseType_t         uxCriticalDelay;     /*< Di */
+	UBaseType_t         uxPeriod;            /*< Ti */
+	UBaseType_t         uxMaxExecutionTime;  /*< ci */
 
 	#if ( portSTACK_GROWTH > 0 )
 		StackType_t		*pxEndOfStack;		/*< Points to the end of the stack on architectures where the stack grows up from low memory. */
@@ -216,6 +217,7 @@ static variables must be declared volatile. */
 PRIVILEGED_DATA TCB_t * volatile pxCurrentTCB = NULL;
 
 /* Lists for ready and blocked tasks. --------------------*/
+PRIVILEGED_DATA static List_t xPeriodicTasksList;                       /*< Periodic tasks. */
 PRIVILEGED_DATA static List_t pxReadyTasksLists[ configMAX_PRIORITIES ];/*< Prioritised ready tasks. */
 PRIVILEGED_DATA static List_t xDelayedTaskList1;						/*< Delayed tasks. */
 PRIVILEGED_DATA static List_t xDelayedTaskList2;						/*< Delayed tasks (two lists are used - one for delays that have overflowed the current tick count. */
@@ -552,7 +554,7 @@ static void prvResetNextTaskUnblockTime( void );
 #endif
 /*-----------------------------------------------------------*/
 
-BaseType_t xTaskGenericCreate( TaskFunction_t pxTaskCode, const char * const pcName, const uint16_t usStackDepth, void * const pvParameters, UBaseType_t uxPriority, TaskHandle_t * const pxCreatedTask, StackType_t * const puxStackBuffer, const MemoryRegion_t * const xRegions ) /*lint !e971 Unqualified char types are allowed for strings and single characters only. */
+BaseType_t xTaskGenericCreate( TaskFunction_t pxTaskCode, const char * const pcName, const uint16_t usStackDepth, void * const pvParameters, UBaseType_t uxPriority, UBaseType_t uxCriticalDelay, UBaseType_t uxPeriod, UBaseType_t uxMaxExecutionTime, TaskHandle_t * const pxCreatedTask, StackType_t * const puxStackBuffer, const MemoryRegion_t * const xRegions ) /*lint !e971 Unqualified char types are allowed for strings and single characters only. */
 {
 BaseType_t xReturn;
 TCB_t * pxNewTCB;
@@ -623,6 +625,9 @@ StackType_t *pxTopOfStack;
 
 		/* Setup the newly allocated TCB with the initial state of the task. */
 		prvInitialiseTCBVariables( pxNewTCB, pcName, uxPriority, xRegions, usStackDepth );
+		pxNewTCB->uxCriticalDelay = uxCriticalDelay;
+		pxNewTCB->uxPeriod = uxPeriod;
+		pxNewTCB->uxMaxExecutionTime = uxMaxExecutionTime;
 
 		/* Initialize the TCB stack to look as if the task was already running,
 		but had been interrupted by the scheduler.  The return address is set
@@ -710,6 +715,10 @@ StackType_t *pxTopOfStack;
 			xReturn = pdPASS;
 			portSETUP_TCB( pxNewTCB );
 		}
+
+        /* check if restart or idle */
+		vListInsert( & xPeriodicTasksList, & ( pxNewTCB->xPeriodicListItem ) );
+
 		taskEXIT_CRITICAL();
 	}
 	else
@@ -2879,8 +2888,11 @@ UBaseType_t x;
 	}
 	#endif /* configUSE_MUTEXES */
 
+	vListInitialiseItem( &( pxTCB->xPeriodicListItem ) );
 	vListInitialiseItem( &( pxTCB->xGenericListItem ) );
 	vListInitialiseItem( &( pxTCB->xEventListItem ) );
+
+    listSET_LIST_ITEM_OWNER( &( pxTCB->xPeriodicListItem ), pxTCB );
 
 	/* Set the pxTCB as a link back from the ListItem_t.  This is so we can get
 	back to	the containing TCB from a generic item in a list. */
@@ -3002,6 +3014,8 @@ UBaseType_t x;
 static void prvInitialiseTaskLists( void )
 {
 UBaseType_t uxPriority;
+
+    vListInitialise( &xPeriodicTasksList );
 
 	for( uxPriority = ( UBaseType_t ) 0U; uxPriority < ( UBaseType_t ) configMAX_PRIORITIES; uxPriority++ )
 	{
@@ -4482,28 +4496,36 @@ void vTaskUpdatePriorities( void )
 TCB_t *pxTCBtmp;
 TCB_t *pxTCBmax;
 UBaseType_t uxPriority;
-ListItem_t *xItem;
+ListItem_t *pxItem;
 
     pxTCBmax = pxCurrentTCB; /* check null ? */
     uxPriority = ( UBaseType_t ) (configMAX_PRIORITIES - 1);
 	/*for( uxPriority = ( UBaseType_t ) 0U; uxPriority < ( UBaseType_t ) configMAX_PRIORITIES; uxPriority++ )
 	{*/
-        for( xItem = listGET_HEAD_ENTRY( & ( pxReadyTasksLists[ uxPriority ] ) );
-             xItem != listGET_END_MARKER( & ( pxReadyTasksLists[ uxPriority ] ) );
-             xItem = listGET_NEXT( xItem ) )
+        for( pxItem = listGET_HEAD_ENTRY( & ( pxReadyTasksLists[ uxPriority ] ) );
+             pxItem != listGET_END_MARKER( & ( pxReadyTasksLists[ uxPriority ] ) );
+             pxItem = listGET_NEXT( pxItem ) )
         {
-            pxTCBtmp = ( TCB_t * ) listGET_LIST_ITEM_OWNER( xItem );
-
+            pxTCBtmp = ( TCB_t * ) listGET_LIST_ITEM_OWNER( pxItem );
+            if( pxTCBtmp->uxPriority > ( UBaseType_t ) ( tskIDLE_PRIORITY | portPRIVILEGE_BIT ) )
+            {
+                ;/* compare deadlines here */
+            }
         }
 	/*}*/
 
 	if( pxTCBmax != pxCurrentTCB )
 	{
-	    /*vTaskPrioritySet( TaskHandle_t xTask, UBaseType_t uxNewPriority )
-	    vTaskPrioritySet( TaskHandle_t xTask, UBaseType_t uxNewPriority )*/
-	    pxCurrentTCB->uxPriority = configMAX_PRIORITIES - 1;
-	    pxTCBmax->uxPriority = configMAX_PRIORITIES;
+	    vTaskPrioritySet( ( TaskHandle_t ) pxCurrentTCB, ( UBaseType_t ) ( configMAX_PRIORITIES - 1 ) );
+	    vTaskPrioritySet( ( TaskHandle_t ) pxTCBmax, ( UBaseType_t ) ( configMAX_PRIORITIES ) );
 	}
+}
+
+/*-----------------------------------------------------------*/
+
+void vTaskUpdatePeriodic( void )
+{
+    ;
 }
 
 #ifdef FREERTOS_MODULE_TEST
