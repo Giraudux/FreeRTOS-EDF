@@ -37,7 +37,7 @@ CFLAG = -c
 OFLAG = -o
 INCLUDEFLAG = -I
 CPUFLAG = -mcpu=arm926ej-s
-WFLAG = -Wall -Wextra -Werror
+WFLAG = -Wall -Wextra
 CFLAGS = $(CPUFLAG) $(WFLAG)
 
 # Additional C compiler flags to produce debugging symbols
@@ -51,7 +51,7 @@ PORT_COMP_TARG = GCC/ARM926EJ-S/
 OBJDIR = obj/
 
 # FreeRTOS source base directory
-FREERTOS_SRC = FreeRTOS/Source/
+FREERTOS_SRC = ../Source/
 
 # Directory with memory management source files
 FREERTOS_MEMMANG_SRC = $(FREERTOS_SRC)portable/MemMang/
