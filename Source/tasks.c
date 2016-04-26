@@ -4477,13 +4477,33 @@ TickType_t uxReturn;
 
 /*-----------------------------------------------------------*/
 
-void vTaskUpdatePriorities( void ) {
-    /*TCP_t *pxTCB = prvGetTCBFromHandle( xTask );*/
-    UBaseType_t i;
+void vTaskUpdatePriorities( void )
+{
+TCB_t *pxTCBtmp;
+TCB_t *pxTCBmax;
+UBaseType_t uxPriority;
+ListItem_t *xItem;
 
-    for(i = 0; i < configMAX_PRIORITIES; i++) {
-        ;
-    }
+    pxTCBmax = pxCurrentTCB; /* check null ? */
+    uxPriority = ( UBaseType_t ) (configMAX_PRIORITIES - 1);
+	/*for( uxPriority = ( UBaseType_t ) 0U; uxPriority < ( UBaseType_t ) configMAX_PRIORITIES; uxPriority++ )
+	{*/
+        for( xItem = listGET_HEAD_ENTRY( & ( pxReadyTasksLists[ uxPriority ] ) );
+             xItem != listGET_END_MARKER( & ( pxReadyTasksLists[ uxPriority ] ) );
+             xItem = listGET_NEXT( xItem ) )
+        {
+            pxTCBtmp = ( TCB_t * ) listGET_LIST_ITEM_OWNER( xItem );
+
+        }
+	/*}*/
+
+	if( pxTCBmax != pxCurrentTCB )
+	{
+	    /*vTaskPrioritySet( TaskHandle_t xTask, UBaseType_t uxNewPriority )
+	    vTaskPrioritySet( TaskHandle_t xTask, UBaseType_t uxNewPriority )*/
+	    pxCurrentTCB->uxPriority = configMAX_PRIORITIES - 1;
+	    pxTCBmax->uxPriority = configMAX_PRIORITIES;
+	}
 }
 
 #ifdef FREERTOS_MODULE_TEST
