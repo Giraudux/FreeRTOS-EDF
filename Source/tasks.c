@@ -4641,25 +4641,25 @@ void vTasksRestart( void )
 {
 PTCB_t * pxPTCB;
 PTCB_t * pxPTCBrestart;
-ListItem_t * pxItem;
-TickType_t xTickCount;
+/*TickType_t xTickCount;*/
+ListItem_t * pxIterator;
 
     pxPTCBrestart = NULL;
-    xTickCount = xTaskGetTickCount();
+    /*xTickCount = xTaskGetTickCount()*/;
 
-    taskENTER_CRITICAL();
-    for( pxItem = listGET_HEAD_ENTRY( & xPeriodicTasksList );
-         pxItem != listGET_END_MARKER( & xPeriodicTasksList );
-         pxItem = listGET_NEXT( pxItem ) )
+    /*taskENTER_CRITICAL();*/
+    for( pxIterator = listGET_HEAD_ENTRY( & xPeriodicTasksList );
+         pxIterator != listGET_END_MARKER( & xPeriodicTasksList );
+         pxIterator = listGET_NEXT( pxIterator ) )
     {
-        pxPTCB = ( PTCB_t * ) listGET_LIST_ITEM_OWNER( pxItem );
+        pxPTCB = ( PTCB_t * ) listGET_LIST_ITEM_OWNER( pxIterator );
         if( xTickCount > pxPTCB->uxRestartTime )
         {
             pxPTCBrestart = pxPTCB;
             break;
         }
     }
-    taskEXIT_CRITICAL();
+    /*taskEXIT_CRITICAL();*/
 
     if( pxPTCBrestart != NULL )
     {
