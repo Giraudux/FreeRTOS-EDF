@@ -4589,7 +4589,7 @@ PTCB_t * pxNewPTCB;
 
     pxNewPTCB = prvAllocatePTCBAndStack( usStackDepth, puxStackBuffer );
 
-    if( pxNewPTCB == NULL )
+    if( pxNewPTCB != NULL )
     {
         vListInitialiseItem( & ( pxNewPTCB->xPeriodicListItem ) );
         listSET_LIST_ITEM_OWNER( & ( pxNewPTCB->xPeriodicListItem ), pxNewPTCB );
@@ -4619,16 +4619,18 @@ PTCB_t * pxNewPTCB;
 
         taskENTER_CRITICAL();
         {
-            vListInsert( & xPeriodicTasksList, & ( pxNewPTCB->xPeriodicListItem ) );
+            vListInsertEnd( & xPeriodicTasksList, & ( pxNewPTCB->xPeriodicListItem ) );
         }
         taskEXIT_CRITICAL();
 
-        xReturn = pdTRUE;
+        xReturn = pdPASS;
     }
     else
     {
         xReturn = errCOULD_NOT_ALLOCATE_REQUIRED_MEMORY;
     }
+
+    vTasksRestart();
 
     return xReturn;
 }
@@ -4645,22 +4647,23 @@ TickType_t xTickCount;
     pxPTCBrestart = NULL;
     xTickCount = xTaskGetTickCount();
 
-    /*taskENTER_CRITICAL();*/
+    taskENTER_CRITICAL();
     for( pxItem = listGET_HEAD_ENTRY( & xPeriodicTasksList );
          pxItem != listGET_END_MARKER( & xPeriodicTasksList );
          pxItem = listGET_NEXT( pxItem ) )
     {
         pxPTCB = ( PTCB_t * ) listGET_LIST_ITEM_OWNER( pxItem );
-        if( pxPTCB->uxRestartTime < xTickCount )
+        if( xTickCount > pxPTCB->uxRestartTime )
         {
             pxPTCBrestart = pxPTCB;
             break;
         }
     }
-    /*taskEXIT_CRITICAL();*/
+    taskEXIT_CRITICAL();
 
     if( pxPTCBrestart != NULL )
     {
+        pxPTCBrestart->uxRestartTime = xTickCount + pxPTCBrestart->uxPeriod / portTICK_PERIOD_MS;
         xTaskCreate( pxPTCBrestart->pxTaskCode, pxPTCBrestart->pcName, pxPTCBrestart->usStackDepth, pxPTCBrestart->pvParameters, ( UBaseType_t ) ( configMAX_PRIORITIES - 1U ), pxPTCBrestart->pxCreatedTask );
     }
 }
