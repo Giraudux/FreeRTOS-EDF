@@ -1,9 +1,10 @@
 #
 #	Makefile for FreeRTOS demo on Raspberry Pi
 #
-PATH:=$(PATH):./gcc-arm-none-eabi-4_9-2015q3/arm-none-eabi/bin:./gcc-arm-none-eabi-4_9-2015q3/bin
+
 BASE=$(shell pwd)/
 BUILD_DIR=$(shell pwd)/build/
+PATH:=$(PATH):$(BASE)gcc-arm-none-eabi/arm-none-eabi/bin:$(BASE)gcc-arm-none-eabi/bin
 
 MODULE_NAME="RaspberryPi BSP"
 
@@ -28,8 +29,8 @@ kernel.syms: kernel.elf
 	$(Q)$(PRETTY) SYMS $(MODULE_NAME) $@
 	$(Q)$(OBJDUMP) -t kernel.elf > $@
 
-kernel.elf: LDFLAGS += -L "./gcc-arm-none-eabi-4_9-2015q3/lib/gcc/arm-none-eabi/4.9.3" -lgcc
-kernel.elf: LDFLAGS += -L "./gcc-arm-none-eabi-4_9-2015q3/arm-none-eabi/lib" -lc
+kernel.elf: LDFLAGS += -L "./gcc-arm-none-eabi/lib/gcc/arm-none-eabi/4.9.3"
+kernel.elf: LDFLAGS += -L "./gcc-arm-none-eabi/arm-none-eabi/lib"
+kernel.elf: LDFLAGS += -lgcc -lc
 kernel.elf: $(OBJECTS)
 	$(Q)$(LD) $(OBJECTS) -Map kernel.map -o $@ -T $(LINKER_SCRIPT) $(LDFLAGS)
-

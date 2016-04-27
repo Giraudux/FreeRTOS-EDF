@@ -127,6 +127,30 @@ typedef enum
 } eNotifyValue;
 
 /*
+ * Periodic task control block.
+ */
+typedef struct tskPeriodicTaskControlBlock
+{
+    ListItem_t          xPeriodicListItem;                  /*< */
+
+    UBaseType_t         uxCriticalDelay;                    /*< Di */
+    UBaseType_t         uxPeriod;                           /*< Ti */
+    UBaseType_t         uxMaxExecutionTime;                 /*< ci */
+
+    TickType_t          uxRestartTime;                      /*< ri */
+
+    TaskFunction_t      pxTaskCode;                         /*< */
+    char                pcName[ configMAX_TASK_NAME_LEN ];  /*< */
+    uint16_t            usStackDepth;                       /*< */
+    void*               pvParameters;                       /*< */
+    TaskHandle_t*       pxCreatedTask;                      /*< */
+    StackType_t*        puxStackBuffer;                     /*< */
+    MemoryRegion_t*     xRegions;                           /*< */
+
+    StackType_t*        pxStack;                            /*< */
+} PTCB_t;
+
+/*
  * Task control block.  A task control block (TCB) is allocated for each task,
  * and stores task state information, including a pointer to the task's context
  * (the task's run time environment, including register values)
@@ -140,16 +164,11 @@ typedef struct tskTaskControlBlock
 		BaseType_t		xUsingStaticallyAllocatedStack; /* Set to pdTRUE if the stack is a statically allocated array, and pdFALSE if the stack is dynamically allocated. */
 	#endif
 
-    ListItem_t          xPeriodicListItem;   /*< */
 	ListItem_t			xGenericListItem;	/*< The list that the state list item of a task is reference from denotes the state of that task (Ready, Blocked, Suspended ). */
 	ListItem_t			xEventListItem;		/*< Used to reference a task from an event list. */
 	UBaseType_t			uxPriority;			/*< The priority of the task.  0 is the lowest priority. */
 	StackType_t			*pxStack;			/*< Points to the start of the stack. */
 	char				pcTaskName[ configMAX_TASK_NAME_LEN ];/*< Descriptive name given to the task when created.  Facilitates debugging only. */ /*lint !e971 Unqualified char types are allowed for strings and single characters only. */
-
-	UBaseType_t         uxCriticalDelay;     /*< Di */
-	UBaseType_t         uxPeriod;            /*< Ti */
-	UBaseType_t         uxMaxExecutionTime;  /*< ci */
 
 	#if ( portSTACK_GROWTH > 0 )
 		StackType_t		*pxEndOfStack;		/*< Points to the end of the stack on architectures where the stack grows up from low memory. */
@@ -492,6 +511,12 @@ static void prvCheckTasksWaitingTermination( void ) PRIVILEGED_FUNCTION;
 static void prvAddCurrentTaskToDelayedList( const TickType_t xTimeToWake ) PRIVILEGED_FUNCTION;
 
 /*
+ * Allocates memory from the heap for a PTCB and associated stack.  Checks the
+ * allocation was successful.
+ */
+static PTCB_t *prvAllocatePTCBAndStack( const uint16_t usStackDepth, StackType_t * const puxStackBuffer ) PRIVILEGED_FUNCTION;
+
+/*
  * Allocates memory from the heap for a TCB and associated stack.  Checks the
  * allocation was successful.
  */
@@ -554,7 +579,7 @@ static void prvResetNextTaskUnblockTime( void );
 #endif
 /*-----------------------------------------------------------*/
 
-BaseType_t xTaskGenericCreate( TaskFunction_t pxTaskCode, const char * const pcName, const uint16_t usStackDepth, void * const pvParameters, UBaseType_t uxPriority, UBaseType_t uxCriticalDelay, UBaseType_t uxPeriod, UBaseType_t uxMaxExecutionTime, TaskHandle_t * const pxCreatedTask, StackType_t * const puxStackBuffer, const MemoryRegion_t * const xRegions ) /*lint !e971 Unqualified char types are allowed for strings and single characters only. */
+BaseType_t xTaskGenericCreate( TaskFunction_t pxTaskCode, const char * const pcName, const uint16_t usStackDepth, void * const pvParameters, UBaseType_t uxPriority, TaskHandle_t * const pxCreatedTask, StackType_t * const puxStackBuffer, const MemoryRegion_t * const xRegions ) /*lint !e971 Unqualified char types are allowed for strings and single characters only. */
 {
 BaseType_t xReturn;
 TCB_t * pxNewTCB;
@@ -625,9 +650,6 @@ StackType_t *pxTopOfStack;
 
 		/* Setup the newly allocated TCB with the initial state of the task. */
 		prvInitialiseTCBVariables( pxNewTCB, pcName, uxPriority, xRegions, usStackDepth );
-		pxNewTCB->uxCriticalDelay = uxCriticalDelay;
-		pxNewTCB->uxPeriod = uxPeriod;
-		pxNewTCB->uxMaxExecutionTime = uxMaxExecutionTime;
 
 		/* Initialize the TCB stack to look as if the task was already running,
 		but had been interrupted by the scheduler.  The return address is set
@@ -715,10 +737,6 @@ StackType_t *pxTopOfStack;
 			xReturn = pdPASS;
 			portSETUP_TCB( pxNewTCB );
 		}
-
-        /* check if restart or idle */
-		vListInsert( & xPeriodicTasksList, & ( pxNewTCB->xPeriodicListItem ) );
-
 		taskEXIT_CRITICAL();
 	}
 	else
@@ -2888,11 +2906,8 @@ UBaseType_t x;
 	}
 	#endif /* configUSE_MUTEXES */
 
-	vListInitialiseItem( &( pxTCB->xPeriodicListItem ) );
 	vListInitialiseItem( &( pxTCB->xGenericListItem ) );
 	vListInitialiseItem( &( pxTCB->xEventListItem ) );
-
-    listSET_LIST_ITEM_OWNER( &( pxTCB->xPeriodicListItem ), pxTCB );
 
 	/* Set the pxTCB as a link back from the ListItem_t.  This is so we can get
 	back to	the containing TCB from a generic item in a list. */
@@ -3015,7 +3030,7 @@ static void prvInitialiseTaskLists( void )
 {
 UBaseType_t uxPriority;
 
-    vListInitialise( &xPeriodicTasksList );
+    vListInitialise( & xPeriodicTasksList );
 
 	for( uxPriority = ( UBaseType_t ) 0U; uxPriority < ( UBaseType_t ) configMAX_PRIORITIES; uxPriority++ )
 	{
@@ -3113,6 +3128,81 @@ static void prvAddCurrentTaskToDelayedList( const TickType_t xTimeToWake )
 			mtCOVERAGE_TEST_MARKER();
 		}
 	}
+}
+/*-----------------------------------------------------------*/
+
+static PTCB_t *prvAllocatePTCBAndStack( const uint16_t usStackDepth, StackType_t * const puxStackBuffer )
+{
+PTCB_t *pxNewPTCB;
+
+	/* If the stack grows down then allocate the stack then the PTCB so the stack
+	does not grow into the PTCB.  Likewise if the stack grows up then allocate
+	the PTCB then the stack. */
+	#if( portSTACK_GROWTH > 0 )
+	{
+		/* Allocate space for the PTCB.  Where the memory comes from depends on
+		the implementation of the port malloc function. */
+		pxNewPTCB = ( PTCB_t * ) pvPortMalloc( sizeof( PTCB_t ) );
+
+		if( pxNewPTCB != NULL )
+		{
+			/* Allocate space for the stack used by the task being created.
+			The base of the stack memory stored in the PTCB so the task can
+			be deleted later if required. */
+			pxNewPTCB->pxStack = ( StackType_t * ) pvPortMallocAligned( ( ( ( size_t ) usStackDepth ) * sizeof( StackType_t ) ), puxStackBuffer ); /*lint !e961 MISRA exception as the casts are only redundant for some ports. */
+
+			if( pxNewPTCB->pxStack == NULL )
+			{
+				/* Could not allocate the stack.  Delete the allocated PTCB. */
+				vPortFree( pxNewPTCB );
+				pxNewPTCB = NULL;
+			}
+		}
+	}
+	#else /* portSTACK_GROWTH */
+	{
+	StackType_t *pxStack;
+
+		/* Allocate space for the stack used by the task being created. */
+		pxStack = ( StackType_t * ) pvPortMallocAligned( ( ( ( size_t ) usStackDepth ) * sizeof( StackType_t ) ), puxStackBuffer ); /*lint !e961 MISRA exception as the casts are only redundant for some ports. */
+
+		if( pxStack != NULL )
+		{
+			/* Allocate space for the PTCB.  Where the memory comes from depends
+			on the implementation of the port malloc function. */
+			pxNewPTCB = ( PTCB_t * ) pvPortMalloc( sizeof( PTCB_t ) );
+
+			if( pxNewPTCB != NULL )
+			{
+				/* Store the stack location in the PTCB. */
+				pxNewPTCB->pxStack = pxStack;
+			}
+			else
+			{
+				/* The stack cannot be used as the PTCB was not created.  Free it
+				again. */
+				vPortFree( pxStack );
+			}
+		}
+		else
+		{
+			pxNewPTCB = NULL;
+		}
+	}
+	#endif /* portSTACK_GROWTH */
+
+	if( pxNewPTCB != NULL )
+	{
+		/* Avoid dependency on memset() if it is not required. */
+		#if( ( configCHECK_FOR_STACK_OVERFLOW > 1 ) || ( configUSE_TRACE_FACILITY == 1 ) || ( INCLUDE_uxTaskGetStackHighWaterMark == 1 ) )
+		{
+			/* Just to help debugging. */
+			( void ) memset( pxNewPTCB->pxStack, ( int ) tskSTACK_FILL_BYTE, ( size_t ) usStackDepth * sizeof( StackType_t ) );
+		}
+		#endif /* ( ( configCHECK_FOR_STACK_OVERFLOW > 1 ) || ( ( configUSE_TRACE_FACILITY == 1 ) || ( INCLUDE_uxTaskGetStackHighWaterMark == 1 ) ) ) */
+	}
+
+	return pxNewPTCB;
 }
 /*-----------------------------------------------------------*/
 
@@ -4491,41 +4581,88 @@ TickType_t uxReturn;
 
 /*-----------------------------------------------------------*/
 
-void vTaskUpdatePriorities( void )
+BaseType_t xPeriodicTaskGenericCreate( TaskFunction_t pxTaskCode, const char * const pcName, const uint16_t usStackDepth, void * const pvParameters, UBaseType_t uxCriticalDelay, UBaseType_t uxPeriod, UBaseType_t uxMaxExecutionTime, TaskHandle_t * const pxCreatedTask, StackType_t * const puxStackBuffer, const MemoryRegion_t * const xRegions )
 {
-TCB_t *pxTCBtmp;
-TCB_t *pxTCBmax;
-UBaseType_t uxPriority;
-ListItem_t *pxItem;
+UBaseType_t x;
+BaseType_t xReturn;
+PTCB_t * pxNewPTCB;
 
-    pxTCBmax = pxCurrentTCB; /* check null ? */
-    uxPriority = ( UBaseType_t ) (configMAX_PRIORITIES - 1);
-	/*for( uxPriority = ( UBaseType_t ) 0U; uxPriority < ( UBaseType_t ) configMAX_PRIORITIES; uxPriority++ )
-	{*/
-        for( pxItem = listGET_HEAD_ENTRY( & ( pxReadyTasksLists[ uxPriority ] ) );
-             pxItem != listGET_END_MARKER( & ( pxReadyTasksLists[ uxPriority ] ) );
-             pxItem = listGET_NEXT( pxItem ) )
+    pxNewPTCB = prvAllocatePTCBAndStack( usStackDepth, puxStackBuffer );
+
+    if( pxNewPTCB == NULL )
+    {
+        vListInitialiseItem( & ( pxNewPTCB->xPeriodicListItem ) );
+        listSET_LIST_ITEM_OWNER( & ( pxNewPTCB->xPeriodicListItem ), pxNewPTCB );
+
+        pxNewPTCB->uxCriticalDelay = uxCriticalDelay;
+        pxNewPTCB->uxPeriod = uxPeriod;
+        pxNewPTCB->uxMaxExecutionTime = uxMaxExecutionTime;
+
+        pxNewPTCB->uxRestartTime = 0U;
+
+        pxNewPTCB->pxTaskCode = pxTaskCode;
+        pxNewPTCB->usStackDepth = usStackDepth;
+        pxNewPTCB->pvParameters = pvParameters;
+        pxNewPTCB->pxCreatedTask = pxCreatedTask;
+        pxNewPTCB->puxStackBuffer = puxStackBuffer;
+        pxNewPTCB->xRegions = ( MemoryRegion_t * ) xRegions;
+
+        /* Store the task name in the PTCB. */
+        for( x = ( UBaseType_t ) 0U; x < ( UBaseType_t ) configMAX_TASK_NAME_LEN; x++ )
         {
-            pxTCBtmp = ( TCB_t * ) listGET_LIST_ITEM_OWNER( pxItem );
-            if( pxTCBtmp->uxPriority > ( UBaseType_t ) ( tskIDLE_PRIORITY | portPRIVILEGE_BIT ) )
+            pxNewPTCB->pcName[ x ] = pcName[ x ];
+            if( pcName[ x ] == 0x00 )
             {
-                ;/* compare deadlines here */
+                break;
             }
         }
-	/*}*/
 
-	if( pxTCBmax != pxCurrentTCB )
-	{
-	    vTaskPrioritySet( ( TaskHandle_t ) pxCurrentTCB, ( UBaseType_t ) ( configMAX_PRIORITIES - 1 ) );
-	    vTaskPrioritySet( ( TaskHandle_t ) pxTCBmax, ( UBaseType_t ) ( configMAX_PRIORITIES ) );
-	}
+        taskENTER_CRITICAL();
+        {
+            vListInsert( & xPeriodicTasksList, & ( pxNewPTCB->xPeriodicListItem ) );
+        }
+        taskEXIT_CRITICAL();
+
+        xReturn = pdTRUE;
+    }
+    else
+    {
+        xReturn = errCOULD_NOT_ALLOCATE_REQUIRED_MEMORY;
+    }
+
+    return xReturn;
 }
 
 /*-----------------------------------------------------------*/
 
-void vTaskUpdatePeriodic( void )
+void vTasksRestart( void )
 {
-    ;
+PTCB_t * pxPTCB;
+PTCB_t * pxPTCBrestart;
+ListItem_t * pxItem;
+TickType_t xTickCount;
+
+    pxPTCBrestart = NULL;
+    xTickCount = xTaskGetTickCount();
+
+    /*taskENTER_CRITICAL();*/
+    for( pxItem = listGET_HEAD_ENTRY( & xPeriodicTasksList );
+         pxItem != listGET_END_MARKER( & xPeriodicTasksList );
+         pxItem = listGET_NEXT( pxItem ) )
+    {
+        pxPTCB = ( PTCB_t * ) listGET_LIST_ITEM_OWNER( pxItem );
+        if( pxPTCB->uxRestartTime < xTickCount )
+        {
+            pxPTCBrestart = pxPTCB;
+            break;
+        }
+    }
+    /*taskEXIT_CRITICAL();*/
+
+    if( pxPTCBrestart != NULL )
+    {
+        xTaskCreate( pxPTCBrestart->pxTaskCode, pxPTCBrestart->pcName, pxPTCBrestart->usStackDepth, pxPTCBrestart->pvParameters, ( UBaseType_t ) ( configMAX_PRIORITIES - 1U ), pxPTCBrestart->pxCreatedTask );
+    }
 }
 
 #ifdef FREERTOS_MODULE_TEST
